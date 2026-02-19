@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AOP Development Lifecycle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Inter, system-ui, -apple-system, sans-serif; background: #FAFAFA; min-height: 100vh; padding: 32px 20px; color: #111827; }
+  .wrap { max-width: 660px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 32px; }
+  .header .tag { font-size: 10px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.1em; }
+  .header h1 { font-size: 26px; font-weight: 700; margin: 8px 0 0; }
+  .header .sub { font-size: 13px; color: #9CA3AF; margin: 6px 0 0; }
+
+  /* Cards */
+  .card { background: white; border-radius: 14px; border: 1.5px solid #E5E7EB; padding: 18px 20px; margin-bottom: 20px; }
+
+  /* Collapsible header */
+  .collapse-btn { width: 100%; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: space-between; text-align: left; }
+  .collapse-btn .left { display: flex; align-items: center; gap: 10px; }
+  .collapse-btn .label { font-size: 13px; font-weight: 700; color: #111827; }
+  .arrow { font-size: 12px; color: #9CA3AF; transition: transform 0.2s; display: inline-block; }
+  .arrow.open { transform: rotate(180deg); }
+
+  /* Before you start */
+  .triage-item { display: flex; gap: 10px; margin-bottom: 10px; }
+  .triage-item:last-child { margin-bottom: 0; }
+  .triage-num { width: 28px; height: 28px; border-radius: 8px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; font-weight: 700; color: #6B7280; }
+  .triage-q { font-size: 13px; font-weight: 600; }
+  .triage-sub { font-size: 11px; color: #6B7280; margin-top: 1px; }
+
+  /* RACI Legend */
+  .raci-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .raci-legend-item { display: flex; align-items: center; gap: 4px; }
+  .raci-legend-item .raci-label { font-size: 10px; color: #6B7280; }
+  .badge { display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: white; border-radius: 4px; padding: 2px 5px; min-width: 20px; letter-spacing: 0.02em; }
+  .badge-A { background: #DC2626; } .badge-R { background: #2563EB; } .badge-C { background: #D97706; }
+  .badge-I { background: #9CA3AF; } .badge-AR { background: #7C3AED; } .badge-CR { background: #0891B2; }
+
+  /* Best Practices */
+  .bp-cat { margin-bottom: 14px; }
+  .bp-cat:last-child { margin-bottom: 0; }
+  .bp-cat-btn { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 8px; width: 100%; }
+  .bp-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .bp-cat-btn .title { font-size: 13px; font-weight: 600; color: #111827; }
+  .bp-cat-btn .arrow { margin-left: auto; font-size: 10px; }
+  .bp-items { margin-top: 10px; margin-left: 16px; }
+  .bp-item { padding: 8px 12px; background: #F9FAFB; border-radius: 8px; margin-bottom: 6px; }
+  .bp-item:last-child { margin-bottom: 0; }
+  .bp-item .lbl { font-size: 12px; font-weight: 600; color: #374151; }
+  .bp-item .dtl { font-size: 11px; color: #6B7280; margin-top: 2px; }
+
+  /* Timeline */
+  .phase-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; margin-left: 52px; }
+  .phase-badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .phase-title { font-size: 15px; font-weight: 600; }
+
+  .step-row { display: flex; }
+  .rail { width: 52px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+  .node { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: transform 0.15s; color: white; font-size: 14px; font-weight: 700; }
+  .node:hover { transform: scale(1.1); }
+  .node.open { transform: scale(1.1); }
+  .connector { width: 2px; flex: 1; min-height: 20px; }
+  .step-content { flex: 1; padding: 2px 0 24px 14px; }
+  .step-content.last { padding-bottom: 0; }
+  .step-name-btn { cursor: pointer; display: flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; text-align: left; }
+  .step-name { font-size: 14px; font-weight: 600; color: #111827; line-height: 1.3; }
+  .step-detail { font-size: 12px; color: #6B7280; margin-top: 3px; line-height: 1.5; }
+
+  /* RACI dropdown */
+  .raci-panel { margin-top: 10px; background: #F9FAFB; border-radius: 10px; padding: 10px 14px; border: 1px solid #F3F4F6; }
+  .raci-panel .heading { font-size: 10px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .raci-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .raci-cell { display: flex; align-items: center; gap: 5px; background: white; border-radius: 6px; padding: 4px 8px; border: 1px solid #E5E7EB; }
+  .raci-cell .role { font-size: 11px; color: #374151; font-weight: 500; }
+
+  /* Callout */
+  .callout { margin-left: 66px; margin-top: -8px; margin-bottom: 16px; padding: 8px 12px; font-size: 11px; color: #92400E; background: #FFFBEB; border-left: 3px solid #F59E0B; border-radius: 0 8px 8px 0; }
+
+  /* Checklist */
+  .checklist-btn { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 6px; margin-left: 66px; margin-bottom: 8px; }
+  .checklist-btn .lbl { font-size: 11px; font-weight: 700; }
+  .checklist-btn .count { font-size: 10px; color: #9CA3AF; }
+  .checklist-panel { margin-left: 66px; background: white; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+  .check-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; cursor: pointer; border-bottom: 1px solid #F3F4F6; }
+  .check-row:last-child { border-bottom: none; }
+  .checkbox { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1.5px solid #D1D5DB; background: white; font-size: 11px; font-weight: 700; color: white; }
+  .checkbox.checked { background: #22C55E; border: none; }
+  .check-label { font-size: 12px; color: #374151; line-height: 1.4; }
+  .check-label.checked { color: #9CA3AF; text-decoration: line-through; }
+  .check-count { margin-top: 8px; font-size: 10px; color: #9CA3AF; text-align: right; }
+
+  /* Summary Template */
+  .tmpl-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .tmpl-sub { font-size: 11px; color: #9CA3AF; margin-bottom: 16px; }
+  .tmpl-section { margin-bottom: 14px; }
+  .tmpl-section .lbl { font-size: 11px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+  .tmpl-field { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #F9FAFB; border-radius: 6px; margin-bottom: 4px; }
+  .tmpl-field:last-child { margin-bottom: 0; }
+  .tmpl-field .name { font-size: 11px; color: #9CA3AF; min-width: 120px; }
+  .tmpl-field .line { flex: 1; height: 1px; background: #E5E7EB; }
+
+  .footer { text-align: center; margin-top: 28px; font-size: 11px; color: #D1D5DB; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="tag">Decagon AOP Process</div>
+    <h1>AOP Development Lifecycle</h1>
+    <p class="sub">5 phases · 16 steps · Click any step for RACI details</p>
+  </div>
+
+  <!-- Best Practices -->
+  <div class="card" id="bp-card">
+    <button class="collapse-btn" onclick="toggleBP()">
+      <div class="left"><span>📋</span><span class="label">AOP Design Best Practices</span></div>
+      <span class="arrow" id="bp-arrow">▼</span>
+    </button>
+    <div id="bp-body" class="hidden" style="margin-top:16px"></div>
+  </div>
+
+  <!-- Before You Start -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px">Before you start</div>
+    <div class="triage-item"><div class="triage-num">1</div><div><div class="triage-q">1. Does an AOP already exist?</div><div class="triage-sub">If not, does one need to, or is a help center article sufficient?</div></div></div>
+    <div class="triage-item"><div class="triage-num">2</div><div><div class="triage-q">2. What tools does it require?</div><div class="triage-sub">Are those tools available and verified in Decagon?</div></div></div>
+    <div class="triage-item"><div class="triage-num">3</div><div><div class="triage-q">3. What is the user actually asking?</div><div class="triage-sub">Generic info, or something specific to their account?</div></div></div>
+  </div>
+
+  <!-- RACI Legend -->
+  <div class="card" style="padding:14px 20px">
+    <div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:4px">RACI Legend</div>
+    <div class="raci-legend">
+      <div class="raci-legend-item"><span class="badge badge-A">A</span><span class="raci-label">Accountable</span></div>
+      <div class="raci-legend-item"><span class="badge badge-R">R</span><span class="raci-label">Responsible</span></div>
+      <div class="raci-legend-item"><span class="badge badge-AR">A/R</span><span class="raci-label">Both</span></div>
+      <div class="raci-legend-item"><span class="badge badge-C">C</span><span class="raci-label">Consulted</span></div>
+      <div class="raci-legend-item"><span class="badge badge-CR">C/R</span><span class="raci-label">Consulted/Resp.</span></div>
+      <div class="raci-legend-item"><span class="badge badge-I">I</span><span class="raci-label">Informed</span></div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div id="timeline"></div>
+
+  <!-- Summary Template -->
+  <div class="card" style="margin-top:36px" id="template"></div>
+
+  <div class="footer">Support Products / CX Operations · Maintained by Conversational AI Lead</div>
+</div>
+
+<script>
+const phases = [
+  { label:"Phase 1", title:"Intake & Prioritization", color:"#3B82F6", bg:"#EFF6FF", light:"#DBEAFE",
+    steps:[
+      {num:1,name:"Identify area to invest in",detail:"Which customer problem or issue type? Volume, CSAT, business priority, policy change.",raci:{prog:"A/R",ai:"C",ops:"C",sys:"I",eng:"I",qa:"I",data:"C"}},
+      {num:2,name:"Define target intents",detail:"Get specific. Name the exact scenarios, not the broad category.",raci:{prog:"A/R",ai:"C",ops:"C",sys:"I",eng:"I",qa:"C",data:"C"}},
+      {num:3,name:"Set success criteria",detail:"Deflection %, CSAT, escalation rate + guardrails (DSAT, error rate, TTR).",raci:{prog:"A/R",ai:"C",ops:"C",sys:"I",eng:"I",qa:"C",data:"C/R"}},
+    ],
+    checklist:["Intent aligned with CX / company OKRs","Problem statement documented","CX Pod Lead and AI Lead assigned","Success metrics and guardrails drafted","RACI filled in for this AOP"]},
+  { label:"Phase 2", title:"Discovery & Mapping", color:"#22C55E", bg:"#F0FDF4", light:"#DCFCE7",
+    steps:[
+      {num:4,name:"Map current experience",detail:"What happens today when a user has this problem? Bot path and agent escalation path.",raci:{prog:"A",ai:"C",ops:"C",sys:"I",eng:"I",qa:"C",data:"I"}},
+      {num:5,name:"Define happy paths & escalation",detail:"What should the bot handle vs. what must go to an agent?",raci:{prog:"A",ai:"C/R",ops:"C",sys:"I",eng:"C",qa:"C",data:"C"}},
+      {num:6,name:"Assess feasibility",detail:"Pull the current deflection rate and CSAT for that intent/issue type. What % of the remaining volume can realistically be resolved?",raci:{prog:"A/R",ai:"C",ops:"C",sys:"I",eng:"I",qa:"C",data:"R"}},
+    ],
+    checklist:["Current bot and agent flow mapped","Target intents listed; out-of-scope intents called out","Happy paths and escalation cases documented","Feasibility assessed with data"]},
+  { label:"Phase 3", title:"Design & Scoping", color:"#F97316", bg:"#FFF7ED", light:"#FFEDD5",
+    steps:[
+      {num:7,name:"Identify required data & tools",detail:"Small (existing field) / Medium (transform) / Large (net-new source).",raci:{prog:"A",ai:"R",ops:"C",sys:"C",eng:"R",qa:"I",data:"C"}},
+      {num:8,name:"Confirm routing & tagging",detail:"Verify issue type tagging and routing rules are correct for reporting.",raci:{prog:"A",ai:"C",ops:"C/R",sys:"C",eng:"I",qa:"I",data:"I"}},
+      {num:9,name:"Design the AOP",detail:"Entry conditions, exclusions, tool calls, handoffs.",raci:{prog:"C",ai:"A/R",ops:"C",sys:"I",eng:"C",qa:"C",data:"I"}},
+    ],
+    callout:"Check the tool inventory first — it may already exist from a previous initiative.",
+    checklist:["Data, tools, APIs identified and sized (S / M / L) if needed","Tool inventory reviewed for reusable tools","Routing and tagging confirmed","AOP flow or pseudocode drafted"]},
+  { label:"Phase 4", title:"Build & Experiment", color:"#8B5CF6", bg:"#F5F3FF", light:"#EDE9FE",
+    steps:[
+      {num:10,name:"Build / update tools",detail:"Engineering connects data to Decagon.",raci:{prog:"C",ai:"C",ops:"I",sys:"C",eng:"A/R",qa:"I",data:"C"}},
+      {num:11,name:"Author AOP",detail:"Implement logic, branching, copy, tool calls, handoffs.",raci:{prog:"C",ai:"A/R",ops:"C",sys:"I",eng:"C",qa:"C",data:"I"}},
+      {num:12,name:"Test in dev / staging",detail:"Happy paths, edge cases, error handling.",raci:{prog:"C",ai:"C/R",ops:"C",sys:"C",eng:"A/R",qa:"C",data:"I"}},
+      {num:13,name:"Limited rollout",detail:"Feature flag, % traffic, stop conditions defined.",raci:{prog:"A",ai:"C/R",ops:"C",sys:"C",eng:"C",qa:"C",data:"R"}},
+      {num:14,name:"Sample & tune",detail:"Review real conversations. Find unanticipated paths.",raci:{prog:"A",ai:"C/R",ops:"C",sys:"I",eng:"C",qa:"R",data:"C"}},
+    ],
+    checklist:["Eng tickets created for new tools (if needed)","AOP implemented: entry conditions, exclusions, tool calls, handoffs","Dev/staging tests: happy paths, edge cases, error handling","Experiment params: population, traffic %, duration, stop conditions","Approvals captured (Programs, AI Lead, Ops, QA)"]},
+  { label:"Phase 5", title:"Launch & Monitor", color:"#EC4899", bg:"#FDF2F8", light:"#FCE7F3",
+    steps:[
+      {num:15,name:"GA decision",detail:"Do deflection, CSAT, and DSAT meet the criteria set in step 3?",raci:{prog:"A",ai:"C",ops:"C",sys:"C",eng:"C",qa:"C",data:"C/R"}},
+      {num:16,name:"Monitor & iterate",detail:"Expand exposure, track performance, review regularly. Assign an owner.",raci:{prog:"A",ai:"C",ops:"C",sys:"C",eng:"C",qa:"R",data:"R"}},
+    ],
+    checklist:["Feature flag configured for limited rollout","Sampling plan documented","Dashboards validated (deflection, CSAT, DSAT, errors)","First sampling review done; tuning actions applied","GA decision documented with metrics","Added to BAU monitoring (owner, cadence, thresholds)"]},
+];
+
+const roles = [
+  {key:"prog",label:"CX Programs"},{key:"ai",label:"AI Lead"},{key:"ops",label:"CX Ops"},
+  {key:"sys",label:"Systems"},{key:"eng",label:"Engineering"},{key:"qa",label:"QA"},{key:"data",label:"Data"},
+];
+
+const bestPractices = [
+  {title:"User Experience & Conversation Flow",color:"#0EA5E9",items:[
+    {l:"Set expectations up front",d:"\"I can help you understand your benefits, but I can't change your plan.\""},
+    {l:"Design for single, clear intents",d:"If a user raises a second issue, hand off to the relevant AOP or escalate cleanly."},
+    {l:"Minimize turns",d:"Ask for all required info in as few questions as possible."},
+    {l:"Always provide a clear next step",d:"At every endpoint: what happens now?"},
+    {l:"Fail safely",d:"Uncertain or missing data? Escalate with a summary and all known context."},
+  ]},
+  {title:"Data & Tooling",color:"#14B8A6",items:[
+    {l:"Guard against stale data",d:"Build recency checks and fallback behavior when data is missing."},
+    {l:"Prefer reusable tools",d:"Use existing shared tools/APIs before building bespoke flows."},
+    {l:"Check the tool inventory first",d:"Tools may exist from a previous initiative but never got activated."},
+    {l:"Log structured signals",d:"AOP version, intent, outcome, tool calls, error codes."},
+  ]},
+  {title:"Quality, DSAT & Guardrails",color:"#F43F5E",items:[
+    {l:"Align with QA & DSAT rubrics",d:"Failures should map to existing categories (misinformation vs. inefficiency vs. dead ends)."},
+    {l:"Define stop conditions before launch",d:"DSAT above X%? CSAT drop > Y points? Error rate above Z%?"},
+    {l:"Plan feedback loops",d:"Weekly review for first month, then monthly. Assign an owner."},
+  ]},
+];
+
+const templateSections = [
+  {label:"AOP Name",fields:["Name"]},
+  {label:"Issue / Intent(s)",fields:["Intents"]},
+  {label:"Owners",fields:["CX Pod Lead","AI Lead"]},
+  {label:"Scope",fields:["In-scope intents","Out-of-scope / must-escalate"]},
+  {label:"Data & Tooling",fields:["Data dependencies","Tools / APIs used","Known limitations"]},
+  {label:"Success Criteria",fields:["Primary metrics","Guardrails / stop conditions"]},
+  {label:"Experiment Plan",fields:["Exposure","Duration / sample size"]},
+  {label:"Monitoring",fields:["Dashboard link(s)","Review cadence","Maintenance owner"]},
+];
+
+// State
+let openSteps = {}, openChecklists = {}, checkedItems = {}, openBPCats = {}, bpOpen = false;
+
+function badgeClass(v) {
+  if(v==="A/R") return "badge badge-AR";
+  if(v==="C/R") return "badge badge-CR";
+  return "badge badge-"+v;
+}
+
+function toggleBP() {
+  bpOpen = !bpOpen;
+  document.getElementById("bp-arrow").className = bpOpen ? "arrow open" : "arrow";
+  const body = document.getElementById("bp-body");
+  if(bpOpen) { body.classList.remove("hidden"); renderBP(); } else { body.classList.add("hidden"); }
+}
+
+function renderBP() {
+  const el = document.getElementById("bp-body");
+  el.innerHTML = bestPractices.map((bp,i) => {
+    const isOpen = openBPCats[i];
+    return `<div class="bp-cat">
+      <button class="bp-cat-btn" onclick="toggleBPCat(${i})">
+        <div class="bp-dot" style="background:${bp.color}"></div>
+        <span class="title">${bp.title}</span>
+        <span class="arrow ${isOpen?'open':''}" style="font-size:10px">▼</span>
+      </button>
+      ${isOpen ? `<div class="bp-items">${bp.items.map(it=>`<div class="bp-item"><div class="lbl">${it.l}</div><div class="dtl">${it.d}</div></div>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleBPCat(i) { openBPCats[i] = !openBPCats[i]; renderBP(); }
+
+function toggleStep(n) { openSteps[n] = !openSteps[n]; renderTimeline(); }
+function toggleChecklist(pi) { openChecklists[pi] = !openChecklists[pi]; renderTimeline(); }
+function toggleCheck(key, pi) { checkedItems[key] = !checkedItems[key]; renderTimeline(); }
+
+function renderTimeline() {
+  const el = document.getElementById("timeline");
+  const totalSteps = phases.reduce((a,p)=>a+p.steps.length,0);
+  let stepIdx = 0;
+  el.innerHTML = phases.map((phase,pi) => {
+    let html = `<div class="phase-header">
+      <div class="phase-badge" style="background:${phase.bg};border:1px solid ${phase.light};color:${phase.color}">${phase.label}</div>
+      <span class="phase-title">${phase.title}</span>
+    </div>`;
+
+    phase.steps.forEach((step,si) => {
+      stepIdx++;
+      const isLast = stepIdx === totalSteps;
+      const isOpen = openSteps[step.num];
+      const isPhaseEnd = si === phase.steps.length - 1;
+      const nextColor = phases[pi+1]?.color || phase.color;
+
+      let connectorStyle = '';
+      if(!isLast) {
+        connectorStyle = isPhaseEnd
+          ? `background:linear-gradient(to bottom,${phase.color}40,${nextColor}40)`
+          : `background:${phase.color}30`;
+      }
+
+      let raciHTML = '';
+      if(isOpen && step.raci) {
+        raciHTML = `<div class="raci-panel"><div class="heading">RACI for this step</div><div class="raci-grid">
+          ${roles.map(r=>`<div class="raci-cell"><span class="role">${r.label}</span><span class="${badgeClass(step.raci[r.key])}">${step.raci[r.key]}</span></div>`).join('')}
+        </div></div>`;
+      }
+
+      html += `<div class="step-row">
+        <div class="rail">
+          <div class="node ${isOpen?'open':''}" style="background:${phase.color};box-shadow:0 2px 8px ${phase.color}25" onclick="toggleStep(${step.num})">
+            ${step.num}
+          </div>
+          ${!isLast ? `<div class="connector" style="${connectorStyle}"></div>` : ''}
+        </div>
+        <div class="step-content ${isLast?'last':''}">
+          <button class="step-name-btn" onclick="toggleStep(${step.num})">
+            <span class="step-name">${step.name}</span>
+            <span class="arrow ${isOpen?'open':''}" style="font-size:10px">▼</span>
+          </button>
+          <div class="step-detail">${step.detail}</div>
+          ${raciHTML}
+        </div>
+      </div>`;
+    });
+
+    if(phase.callout) {
+      html += `<div class="callout">${phase.callout}</div>`;
+    }
+
+    if(phase.checklist) {
+      const checked = phase.checklist.filter((_,j)=>checkedItems[`${pi}-${j}`]).length;
+      const isOpen = openChecklists[pi];
+      html += `<button class="checklist-btn" onclick="toggleChecklist(${pi})">
+        <span class="lbl" style="color:${phase.color}">${phase.label} Gate Checklist</span>
+        <span class="arrow ${isOpen?'open':''}" style="font-size:10px">▼</span>
+        ${!isOpen ? `<span class="count">(${checked}/${phase.checklist.length})</span>` : ''}
+      </button>`;
+      if(isOpen) {
+        html += `<div class="checklist-panel" style="border:1.5px solid ${phase.light}">
+          ${phase.checklist.map((item,j)=>{
+            const key=`${pi}-${j}`, c=!!checkedItems[key];
+            return `<div class="check-row" onclick="toggleCheck('${key}',${pi})">
+              <div class="checkbox ${c?'checked':''}">${c?'✓':''}</div>
+              <span class="check-label ${c?'checked':''}">${item}</span>
+            </div>`;
+          }).join('')}
+          <div class="check-count">${checked} of ${phase.checklist.length} complete</div>
+        </div>`;
+      }
+    }
+
+    if(pi < phases.length - 1) html += `<div style="height:20px"></div>`;
+    return html;
+  }).join('');
+}
+
+function renderTemplate() {
+  const el = document.getElementById("template");
+  el.innerHTML = `<div class="tmpl-title">AOP Summary Template</div>
+    <div class="tmpl-sub">Lightweight reference for scoping a new AOP</div>
+    ${templateSections.map(s=>`<div class="tmpl-section">
+      <div class="lbl">${s.label}</div>
+      ${s.fields.map(f=>`<div class="tmpl-field"><span class="name">${f}</span><div class="line"></div></div>`).join('')}
+    </div>`).join('')}`;
+}
+
+// Init
+renderTimeline();
+renderTemplate();
+</script>
+</body>
+</html>
