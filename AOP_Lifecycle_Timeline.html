@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AOP Development Lifecycle</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #FAFAFA; }</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const { useState } = React;
+
+const phases = [
+  {
+    label: "Phase 1: Intake & Prioritization", tag: "Steps 0-1",
+    color: "#3B82F6", bg: "#EFF6FF", light: "#DBEAFE",
+    steps: [
+      { num: 0, name: "Intake & prioritize AOP", detail: "Which customer problem or issue type? Anyone can submit. AI Experience Manager triages and prioritizes against OKRs." },
+      { num: 1, name: "Define target intents & success criteria", detail: "Name the exact scenarios. Set primary metrics (deflection %, CSAT, escalation rate) and guardrails (max DSAT, error rate, TTR impact)." },
+    ],
+    checklist: {
+      owner: "AI Experience Manager",
+      items: [
+        "Issue / intent aligned with CX and company OKRs",
+        "Clear problem statement documented",
+        "Success metrics and guardrails drafted",
+        "RACI filled in for this AOP",
+      ],
+    },
+  },
+  {
+    label: "Phase 2: Discovery & Mapping", tag: "Steps 2-3",
+    color: "#22C55E", bg: "#F0FDF4", light: "#DCFCE7",
+    steps: [
+      { num: 2, name: "Map desired experience (Decagon + agent flow)", detail: "What happens today when a user has this intent? CX Pod Lead maps current bot path and agent escalation path." },
+      { num: 3, name: "Design happy paths & escalation rules", detail: "Which scenarios should be deflected vs. must escalate. Estimate the deflectable share of today's volume." },
+    ],
+    checklist: {
+      owner: "CX Pod Lead + AI Experience Manager",
+      items: [
+        "Current bot and agent flow mapped",
+        "Target intents listed; out-of-scope intents called out",
+        "Happy paths and escalation cases documented",
+        "Feasibility assessed with data",
+      ],
+    },
+  },
+  {
+    label: "Phase 3: Design & Scoping", tag: "Steps 4-5",
+    color: "#F97316", bg: "#FFF7ED", light: "#FFEDD5",
+    steps: [
+      { num: 4, name: "Identify required data & tooling (if needed)", detail: "What data powers the happy paths? Classify: Small (existing field), Medium (transform existing), Large (net-new source). AI Experience Manager scopes." },
+      { num: 5, name: "Design the AOP", detail: "Entry conditions, exclusion rules, tool calls, data fetches, handoffs to other AOPs." },
+    ],
+    callout: "Check the tool inventory first -- it may already exist.",
+    checklist: {
+      owner: "AI Experience Manager + Eng",
+      items: [
+        "Required data fields, tools, APIs identified and sized (S / M / L)",
+        "Tool inventory reviewed for reusable tools",
+        "Routing and tagging confirmed",
+        "AOP flow drafted in Decagon",
+      ],
+    },
+  },
+  {
+    label: "Phase 4: Build & Experiment", tag: "Steps 6-8",
+    color: "#8B5CF6", bg: "#F5F3FF", light: "#EDE9FE",
+    steps: [
+      { num: 6, name: "Build / update tools & integrations (if needed)", detail: "Engineering exposes or transforms required data and connects tools into Decagon. Skip if no new eng work." },
+      { num: 7, name: "Draft AOP (flows, copy, conditions)", detail: "AI Content Specialist and/or CX Pod Lead implement logic, branching, copy, tool calls, handoffs in Decagon." },
+      { num: 8, name: "Full AOP testing", detail: "All tool calls succeed, error states fail gracefully, happy paths complete without dead ends, escalation fallback works." },
+    ],
+    checklist: {
+      owner: "AI Content Specialist / CX Pod Lead (build) + AI Experience Manager (approval)",
+      items: [
+        "New or changed tools/integrations deployed (Eng, if needed)",
+        "AOP created in Decagon: entry conditions, exclusions, tool calls, handoffs",
+        "Happy paths tested",
+        "Edge cases tested",
+        "Agent escalation fallback tested",
+      ],
+    },
+  },
+  {
+    label: "Phase 5: Launch & Monitor", tag: "Steps 9-10",
+    color: "#EC4899", bg: "#FDF2F8", light: "#FCE7F3",
+    steps: [
+      { num: 9, name: "Limited rollout / experiment", detail: "Feature flag or % of traffic. Define population, duration, minimum sample, KPIs, and stop conditions. Sample early conversations and tune." },
+      { num: 10, name: "Go/No-go, rollout & ongoing monitoring", detail: "AI Experience Manager makes the call. Gradually increase exposure. Track deflection, CSAT, DSAT, errors. Assign monitoring owner." },
+    ],
+    checklist: {
+      owner: "AI Experience Manager (go/no-go decision)",
+      items: [
+        "Feature flag / versioning configured for limited rollout",
+        "Sampling plan documented (who, how many, how often)",
+        "Dashboards validated: deflection, CSAT, DSAT, errors",
+        "First sampling review completed; tuning actions applied",
+        "GA decision documented with supporting metrics",
+        "AOP added to BAU monitoring list (owner, cadence, metrics)",
+      ],
+    },
+  },
+];
+
+function Checklist({ checklist, color, bg, light }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginLeft: 52, marginTop: -4, marginBottom: 16 }}>
+      <button onClick={() => setOpen(!open)} style={{
+        display: "flex", alignItems: "center", gap: 6, background: "none", border: "none",
+        cursor: "pointer", padding: "4px 0", fontSize: 11, fontWeight: 600, color: color,
+      }}>
+        <span style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: 16, height: 16, borderRadius: 4, background: bg, fontSize: 10,
+          transition: "transform 0.2s", transform: open ? "rotate(90deg)" : "rotate(0deg)",
+        }}>&#9654;</span>
+        Gate checklist ({checklist.items.length})
+      </button>
+      {open && (
+        <div style={{
+          marginTop: 6, marginLeft: 4, padding: "10px 14px",
+          background: "white", borderRadius: 10, border: "1px solid " + light,
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: color, marginBottom: 8 }}>
+            Owner: {checklist.owner}
+          </div>
+          {checklist.items.map((item, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "flex-start", gap: 8,
+              padding: "4px 0", fontSize: 12, color: "#374151", lineHeight: 1.4,
+            }}>
+              <div style={{
+                width: 16, height: 16, borderRadius: 4, border: "1.5px solid " + light,
+                flexShrink: 0, marginTop: 1,
+              }} />
+              {item}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div style={{
+      fontFamily: "Inter, system-ui, -apple-system, sans-serif",
+      background: "#FAFAFA", minHeight: "100vh", padding: "32px 20px",
+    }}>
+      <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        <div style={{ marginBottom: 36, textAlign: "center" }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.1em" }}>Decagon AOP Process</div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: "8px 0 0", color: "#111827" }}>AOP Development Lifecycle</h1>
+          <p style={{ fontSize: 13, color: "#9CA3AF", margin: "6px 0 0" }}>5 phases, 11 steps (0-10)</p>
+        </div>
+
+        <div style={{ position: "relative" }}>
+          {phases.map((phase, pi) => (
+            <div key={pi}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, marginLeft: 52 }}>
+                <div style={{ padding: "4px 10px", borderRadius: 6, background: phase.bg, border: "1px solid " + phase.light }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: phase.color, textTransform: "uppercase", letterSpacing: "0.06em" }}>{phase.tag}</span>
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{phase.label}</span>
+              </div>
+
+              {phase.steps.map((step, si) => {
+                const isLastStep = si === phase.steps.length - 1;
+                const isLastPhase = pi === phases.length - 1;
+                const isLast = isLastStep && isLastPhase;
+                const nextPhase = phases[pi + 1];
+                return (
+                  <div key={step.num} style={{ display: "flex", gap: 0 }}>
+                    <div style={{ width: 52, display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10, background: phase.color, display: "flex",
+                        alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px " + phase.color + "25", flexShrink: 0,
+                      }}>
+                        <span style={{ color: "white", fontSize: 14, fontWeight: 700 }}>{step.num}</span>
+                      </div>
+                      {!isLast && (
+                        <div style={{
+                          width: 2, flex: 1, minHeight: 20,
+                          background: (isLastStep && nextPhase) ? "linear-gradient(to bottom, " + phase.color + "40, " + nextPhase.color + "40)" : phase.color + "30",
+                        }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, paddingBottom: isLast ? 0 : 24, paddingTop: 2, paddingLeft: 14 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", lineHeight: 1.3 }}>{step.name}</div>
+                      <div style={{ fontSize: 12, color: "#6B7280", marginTop: 3, lineHeight: 1.5 }}>{step.detail}</div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {phase.callout && (
+                <div style={{
+                  marginLeft: 66, marginTop: -8, marginBottom: 16, padding: "8px 12px", fontSize: 11, color: "#92400E",
+                  background: "#FFFBEB", borderLeft: "3px solid #F59E0B", borderRadius: "0 8px 8px 0",
+                }}>{phase.callout}</div>
+              )}
+
+              {phase.checklist && <Checklist checklist={phase.checklist} color={phase.color} bg={phase.bg} light={phase.light} />}
+              {pi < phases.length - 1 && <div style={{ height: 4 }} />}
+            </div>
+          ))}
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 28, fontSize: 11, color: "#D1D5DB" }}>Support Products / CX Operations</div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
